@@ -1,0 +1,38 @@
+# MCP servers the driver can spawn. Reference these by name in models or tasks.
+[[mcp_servers]]
+name = "hands"
+# Windows path — active for local dev
+command = "C:\\github\\hands\\target\\release\\hands.exe"
+args = []
+# Linux path for AMD droplet (uncomment and swap when deploying):
+# command = "/root/hands/target/release/hands"
+
+# Models the driver can route to. Each lists which MCP servers to spawn.
+[[models]]
+name = "gpt-oss-20b"
+base_url = "http://localhost:8000/v1"
+model_id = "openai/gpt-oss-20b"
+api_key_env = "VLLM_API_KEY"
+strip_thinking_tags = true
+system_prompt_strategy = "system_role"
+max_tokens = 4096
+temperature = 0.7
+mcp_servers = ["hands"]
+tool_filter = ["browser_*"]
+
+[[models]]
+name = "gpt-oss-120b"
+base_url = "http://localhost:8000/v1"
+model_id = "openai/gpt-oss-120b"
+api_key_env = "VLLM_API_KEY"
+strip_thinking_tags = true
+mcp_servers = ["hands"]
+
+# Catch-all local model for testing against any OpenAI-compatible endpoint
+[[models]]
+name = "local"
+base_url = "http://localhost:11434/v1"
+model_id = "llama3"
+max_tokens = 2048
+temperature = 0.5
+mcp_servers = ["hands"]

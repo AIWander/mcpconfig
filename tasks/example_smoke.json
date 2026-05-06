@@ -1,0 +1,10 @@
+{
+  "name": "example_smoke",
+  "description": "Smoke test against example.com",
+  "model": "gpt-oss-20b",
+  "mcp_servers": ["hands"],
+  "system_prompt": null,
+  "user_prompt": "Navigate to https://example.com and tell me the exact text of the main heading.",
+  "max_iterations": 6,
+  "tool_filter": ["browser_navigate", "browser_get_text", "browser_extract_content"]
+}
