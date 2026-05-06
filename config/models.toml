@@ -9,23 +9,8 @@ args = []
 
 # Models the driver can route to. Each lists which MCP servers to spawn.
 [[models]]
-name = "gpt-oss-20b"
-base_url = "http://localhost:8000/v1"
-model_id = "openai/gpt-oss-20b"
-api_key_env = "VLLM_API_KEY"
-strip_thinking_tags = true
-system_prompt_strategy = "system_role"
-max_tokens = 4096
-temperature = 0.7
-mcp_servers = ["hands"]
-tool_filter = ["browser_*"]
-tool_call_parser = "openai"
-reasoning_parser = "openai_gptoss"
-auto_tool_choice = true
-
-[[models]]
 name = "gpt-oss-120b"
-base_url = "http://localhost:8001/v1"
+base_url = "http://localhost:8000/v1"
 model_id = "openai/gpt-oss-120b"
 api_key_env = "VLLM_API_KEY"
 strip_thinking_tags = true
@@ -35,6 +20,36 @@ mcp_servers = ["hands"]
 tool_filter = ["browser_*"]
 tool_call_parser = "openai"
 reasoning_parser = "openai_gptoss"
+auto_tool_choice = true
+
+[[models]]
+name = "qwen3.6-35b-a3b"
+base_url = "http://localhost:8001/v1"
+model_id = "Qwen/Qwen3.6-35B-A3B"
+api_key_env = "VLLM_API_KEY"
+strip_thinking_tags = true
+system_prompt_strategy = "system_role"
+max_tokens = 4096
+temperature = 0.7
+mcp_servers = ["hands"]
+tool_filter = ["browser_*"]
+tool_call_parser = "qwen3_coder"
+reasoning_parser = "qwen3"
+auto_tool_choice = true
+
+[[models]]
+name = "ministral-3-14b-reasoning"
+base_url = "http://localhost:8002/v1"
+model_id = "mistralai/Ministral-3-14B-Reasoning-2512"
+api_key_env = "VLLM_API_KEY"
+strip_thinking_tags = true
+system_prompt_strategy = "system_role"
+max_tokens = 4096
+temperature = 0.7
+mcp_servers = ["hands"]
+tool_filter = ["browser_*"]
+tool_call_parser = "mistral"
+reasoning_parser = "mistral"
 auto_tool_choice = true
 
 # Catch-all local model for testing against any OpenAI-compatible endpoint
