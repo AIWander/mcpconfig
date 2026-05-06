@@ -16,3 +16,8 @@ Thumbs.db
 # Local config overrides
 config/models.local.toml
 .env
+
+
+# Added by cargo
+
+/target
