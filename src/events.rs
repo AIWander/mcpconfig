@@ -6,19 +6,26 @@ use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-/// Append-only JSONL event writer. Flushes after every line.
-pub struct EventWriter {
-    file: File,
-    pub run_dir: PathBuf,
-}
-
 /// A single event in the run log.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Event {
     pub ts: String,
     pub kind: String,
     #[serde(flatten)]
     pub data: Value,
+}
+
+/// Trait for anything that can receive run events.
+pub trait EventSink: Send {
+    fn log(&mut self, kind: &str, data: Value) -> Result<()>;
+}
+
+// ── File-based sink (existing CLI behavior) ──
+
+/// Append-only JSONL event writer. Flushes after every line.
+pub struct EventWriter {
+    file: File,
+    pub run_dir: PathBuf,
 }
 
 impl EventWriter {
@@ -36,9 +43,10 @@ impl EventWriter {
 
         Ok(EventWriter { file, run_dir })
     }
+}
 
-    /// Write one event, flush immediately.
-    pub fn log(&mut self, kind: &str, data: Value) -> Result<()> {
+impl EventSink for EventWriter {
+    fn log(&mut self, kind: &str, data: Value) -> Result<()> {
         let event = Event {
             ts: Utc::now().to_rfc3339(),
             kind: kind.to_string(),
@@ -47,6 +55,32 @@ impl EventWriter {
         let line = serde_json::to_string(&event)?;
         writeln!(self.file, "{}", line)?;
         self.file.flush()?;
+        Ok(())
+    }
+}
+
+// ── Channel-based sink (serve mode) ──
+
+/// Sends events over an mpsc channel for SSE streaming.
+pub struct ChannelSink {
+    tx: tokio::sync::mpsc::Sender<Event>,
+}
+
+impl ChannelSink {
+    pub fn new(tx: tokio::sync::mpsc::Sender<Event>) -> Self {
+        Self { tx }
+    }
+}
+
+impl EventSink for ChannelSink {
+    fn log(&mut self, kind: &str, data: Value) -> Result<()> {
+        let event = Event {
+            ts: Utc::now().to_rfc3339(),
+            kind: kind.to_string(),
+            data,
+        };
+        // Use try_send to avoid blocking; if the receiver is gone, that's OK
+        let _ = self.tx.try_send(event);
         Ok(())
     }
 }

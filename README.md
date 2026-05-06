@@ -165,6 +165,65 @@ If vLLM is started with parser X but the model expects parser Y:
 
 Always verify parser alignment before running bakeoffs. The `run_start` JSONL event now logs the configured parsers for post-hoc debugging.
 
+## Serve mode (HTTP + SSE)
+
+Start an HTTP server so a remote UI (e.g. Gradio on HuggingFace Spaces) can drive agent runs and stream events in real time:
+
+```bash
+./target/release/mcpconfig serve --port 8003 --bind 0.0.0.0
+```
+
+### Endpoints
+
+**GET /health**
+```bash
+curl http://localhost:8003/health
+# {"status":"ok","models_configured":3,"mcp_servers":[{"name":"hands","command":"...","alive_check":"not_implemented_yet"}]}
+```
+
+**GET /models**
+```bash
+curl http://localhost:8003/models
+# [{"name":"gpt-oss-120b","model_id":"openai/gpt-oss-120b","base_url":"http://...","mcp_servers":["hands"],...}]
+```
+
+**POST /run** (SSE stream)
+```bash
+curl -N -X POST http://localhost:8003/run \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "gpt-oss-120b",
+    "task": {
+      "name": "demo",
+      "model": "gpt-oss-120b",
+      "user_prompt": "Navigate to https://example.com and tell me the main heading.",
+      "max_iterations": 6,
+      "mcp_servers": ["hands"],
+      "tool_filter": ["browser_navigate", "browser_get_text", "browser_extract_content"]
+    }
+  }'
+```
+
+Response is `text/event-stream` (SSE). Each event:
+```
+event: run_start
+data: {"ts":"...","kind":"run_start","task":"demo","model":"gpt-oss-120b",...}
+
+event: llm_response
+data: {"ts":"...","kind":"llm_response","iteration":1,...}
+
+event: tool_call
+data: {"ts":"...","kind":"tool_call","name":"browser_navigate",...}
+
+event: final_answer
+data: {"ts":"...","kind":"final_answer","content":"The heading is..."}
+
+event: run_end
+data: {"ts":"...","kind":"run_end","ok":true,"duration_ms":4200,...}
+```
+
+Errors during the run appear as `event: error` on the stream (not HTTP 500s). CORS is configured for the HuggingFace Space origins.
+
 ## License
 
 MIT or Apache-2.0 (TBD).

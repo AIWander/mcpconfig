@@ -3,7 +3,7 @@ use serde_json::json;
 use tracing::info;
 
 use crate::config::{ModelConfig, Task};
-use crate::events::EventWriter;
+use crate::events::EventSink;
 use crate::openai::{ChatCompletionRequest, Message, OpenAIClient, Usage};
 use crate::registry::ToolRegistry;
 
@@ -13,7 +13,7 @@ pub async fn run_agent_loop(
     model: &ModelConfig,
     client: &OpenAIClient,
     registry: &mut ToolRegistry,
-    events: &mut EventWriter,
+    events: &mut dyn EventSink,
     system_prompt: &str,
 ) -> Result<AgentResult> {
     let tools_for_llm = registry.to_openai_tools();

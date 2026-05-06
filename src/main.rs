@@ -5,11 +5,12 @@ mod mcp;
 mod openai;
 mod registry;
 mod report;
+mod run;
+mod serve;
 mod tools;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-use serde_json::json;
 use std::path::PathBuf;
 use tracing::info;
 
@@ -30,6 +31,15 @@ enum Commands {
     Run {
         /// Path to task JSON file
         task: PathBuf,
+    },
+    /// Start HTTP server for live UI (SSE streaming)
+    Serve {
+        /// Port to listen on
+        #[arg(long, default_value_t = 8003)]
+        port: u16,
+        /// Address to bind to
+        #[arg(long, default_value = "0.0.0.0")]
+        bind: String,
     },
     /// Spawn an MCP server, list its tools, and exit (integration test)
     ListTools {
@@ -52,110 +62,22 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Run { task: task_path } => cmd_run(&driver_config, &task_path).await,
+        Commands::Serve { port, bind } => serve::start(driver_config, &bind, port).await,
         Commands::ListTools { server } => cmd_list_tools(&driver_config, &server).await,
     }
 }
 
 async fn cmd_run(driver_config: &config::DriverConfig, task_path: &PathBuf) -> Result<()> {
     let task = config::load_task(task_path)?;
-    let model = driver_config.find_model(&task.model)?;
 
-    info!("task: {} | model: {}", task.name, model.name);
-    info!(
-        "parsers: tool_call={:?} reasoning={:?} auto_tool_choice={}",
-        model.tool_call_parser, model.reasoning_parser, model.auto_tool_choice
-    );
-
-    // Determine which MCP servers to spawn
-    let server_names = task.mcp_servers.as_ref().unwrap_or(&model.mcp_servers);
-
-    // Determine tool filter
-    let tool_filter = task.tool_filter.as_ref().unwrap_or(&model.tool_filter);
-
-    // Load system prompt
-    let system_prompt = task
-        .system_prompt
-        .clone()
-        .unwrap_or_else(load_default_system_prompt);
-
-    // Create event writer
+    // Create file-based event writer (CLI mode writes run.jsonl + report)
     let runs_dir = PathBuf::from("runs");
     let mut events = events::EventWriter::new(&runs_dir, &task.name)?;
 
-    events.log(
-        "run_start",
-        json!({
-            "task": task.name,
-            "model": model.name,
-            "base_url": model.base_url,
-            "user_prompt": task.user_prompt,
-            "mcp_servers": server_names,
-            "tool_call_parser": model.tool_call_parser,
-            "reasoning_parser": model.reasoning_parser,
-            "auto_tool_choice": model.auto_tool_choice,
-        }),
-    )?;
-
-    // Build tool registry — spawn each MCP server
-    let mut reg = registry::ToolRegistry::new();
-    for server_name in server_names {
-        let server_config = driver_config.find_server(server_name)?;
-        info!(
-            "spawning MCP server: {} ({})",
-            server_name, server_config.command
-        );
-
-        let mut client = mcp::McpClient::spawn(
-            &server_config.command,
-            &server_config.args,
-            &server_config.env,
-        )?;
-
-        let init_result = client
-            .initialize()
-            .await
-            .with_context(|| format!("MCP initialize handshake with '{}'", server_name))?;
-        info!(
-            "initialized {}: {:?}",
-            server_name,
-            init_result.get("serverInfo")
-        );
-
-        let all_tools = client
-            .list_tools()
-            .await
-            .with_context(|| format!("tools/list from '{}'", server_name))?;
-        info!("{} exposes {} tools", server_name, all_tools.len());
-
-        reg.add_server(server_name.clone(), client, all_tools, tool_filter)
-            .await?;
-    }
-
-    info!("{} tools registered after filtering", reg.tool_count());
-
-    // Build OpenAI client
-    let api_key = model
-        .api_key_env
-        .as_ref()
-        .and_then(|env_name| std::env::var(env_name).ok());
-    let openai_client = openai::OpenAIClient::new(&model.base_url, api_key);
-
-    // Run agent loop
-    let result =
-        agent::run_agent_loop(&task, model, &openai_client, &mut reg, &mut events, &system_prompt)
-            .await;
+    let result = run::run_task(driver_config, &task, &mut events).await;
 
     match &result {
         Ok(r) => {
-            events.log(
-                "run_end",
-                json!({
-                    "ok": true,
-                    "duration_ms": r.duration_ms,
-                    "total_tokens": r.total_usage.total_tokens,
-                    "iterations": r.iterations,
-                }),
-            )?;
             info!(
                 "run complete: {} iterations, {}ms, {} tokens",
                 r.iterations, r.duration_ms, r.total_usage.total_tokens
@@ -163,7 +85,6 @@ async fn cmd_run(driver_config: &config::DriverConfig, task_path: &PathBuf) -> R
             println!("\n=== Final Answer ===\n{}\n", r.final_answer);
         }
         Err(e) => {
-            events.log("run_end", json!({"ok": false, "error": e.to_string()}))?;
             eprintln!("run failed: {}", e);
         }
     }
@@ -174,9 +95,6 @@ async fn cmd_run(driver_config: &config::DriverConfig, task_path: &PathBuf) -> R
         "report written to {}",
         events.run_dir.join("shared_state.md").display()
     );
-
-    // Shutdown MCP servers
-    reg.shutdown_all().await?;
 
     result.map(|_| ())
 }
@@ -212,11 +130,4 @@ async fn cmd_list_tools(driver_config: &config::DriverConfig, server_name: &str)
 
     client.shutdown().await?;
     Ok(())
-}
-
-fn load_default_system_prompt() -> String {
-    let path = PathBuf::from("config/prompts/system.txt");
-    std::fs::read_to_string(&path).unwrap_or_else(|_| {
-        "You are an agent with access to browser automation tools. When asked to find information online, use the tools to navigate and extract content. Provide a clear final answer once you have what you need.".to_string()
-    })
 }
