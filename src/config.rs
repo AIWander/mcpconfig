@@ -40,6 +40,20 @@ pub struct ModelConfig {
     pub mcp_servers: Vec<String>,
     #[serde(default)]
     pub tool_filter: Vec<String>,
+
+    // --- vLLM serving constraints (Phase 1 / Option B1) ---
+    /// vLLM tool-call parser name. Must match `--tool-call-parser` flag passed to vLLM at startup.
+    /// Examples: "openai" (gpt-oss), "qwen3_coder" (Qwen3), "mistral" (Ministral), "llama3_json".
+    /// mcpconfig does not yet manage vLLM lifecycle — this field documents the constraint.
+    #[serde(default)]
+    pub tool_call_parser: Option<String>,
+    /// vLLM reasoning parser name. Must match `--reasoning-parser` flag passed to vLLM at startup.
+    /// Examples: "openai_gptoss", "qwen3", "mistral", "deepseek_r1".
+    #[serde(default)]
+    pub reasoning_parser: Option<String>,
+    /// Whether vLLM was started with `--enable-auto-tool-choice`. Default true.
+    #[serde(default = "default_auto_tool_choice")]
+    pub auto_tool_choice: bool,
 }
 
 fn default_system_prompt_strategy() -> String {
@@ -50,6 +64,9 @@ fn default_max_tokens() -> u32 {
 }
 fn default_temperature() -> f32 {
     0.7
+}
+fn default_auto_tool_choice() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Deserialize)]

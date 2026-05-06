@@ -61,6 +61,10 @@ async fn cmd_run(driver_config: &config::DriverConfig, task_path: &PathBuf) -> R
     let model = driver_config.find_model(&task.model)?;
 
     info!("task: {} | model: {}", task.name, model.name);
+    info!(
+        "parsers: tool_call={:?} reasoning={:?} auto_tool_choice={}",
+        model.tool_call_parser, model.reasoning_parser, model.auto_tool_choice
+    );
 
     // Determine which MCP servers to spawn
     let server_names = task.mcp_servers.as_ref().unwrap_or(&model.mcp_servers);
@@ -86,6 +90,9 @@ async fn cmd_run(driver_config: &config::DriverConfig, task_path: &PathBuf) -> R
             "base_url": model.base_url,
             "user_prompt": task.user_prompt,
             "mcp_servers": server_names,
+            "tool_call_parser": model.tool_call_parser,
+            "reasoning_parser": model.reasoning_parser,
+            "auto_tool_choice": model.auto_tool_choice,
         }),
     )?;
 

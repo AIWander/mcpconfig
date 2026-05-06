@@ -19,14 +19,23 @@ max_tokens = 4096
 temperature = 0.7
 mcp_servers = ["hands"]
 tool_filter = ["browser_*"]
+tool_call_parser = "openai"
+reasoning_parser = "openai_gptoss"
+auto_tool_choice = true
 
 [[models]]
 name = "gpt-oss-120b"
-base_url = "http://localhost:8000/v1"
+base_url = "http://localhost:8001/v1"
 model_id = "openai/gpt-oss-120b"
 api_key_env = "VLLM_API_KEY"
 strip_thinking_tags = true
+max_tokens = 4096
+temperature = 0.7
 mcp_servers = ["hands"]
+tool_filter = ["browser_*"]
+tool_call_parser = "openai"
+reasoning_parser = "openai_gptoss"
+auto_tool_choice = true
 
 # Catch-all local model for testing against any OpenAI-compatible endpoint
 [[models]]

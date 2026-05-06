@@ -132,6 +132,39 @@ With hands binary at `C:\github\hands\target\release\hands.exe`:
 - Full end-to-end test: LLM calls tools, gets results, produces final answer
 - Streaming, retries, breadcrumb integration (v2)
 
+## vLLM serving constraints
+
+mcpconfig does **not** manage vLLM lifecycle — you start vLLM yourself with the correct parser flags. The `ModelConfig` fields `tool_call_parser`, `reasoning_parser`, and `auto_tool_choice` are **declarative**: they document which flags vLLM must have been started with for that model entry to work correctly.
+
+### Example vLLM startup (gpt-oss-20b)
+
+```bash
+vllm serve openai/gpt-oss-20b \
+  --enable-auto-tool-choice \
+  --tool-call-parser openai \
+  --reasoning-parser openai_gptoss \
+  --port 8000
+```
+
+### Common parser names by model family
+
+| Model family | `tool_call_parser` | `reasoning_parser` |
+|---|---|---|
+| gpt-oss (20b, 120b) | `openai` | `openai_gptoss` |
+| Qwen3 / Qwen3-Coder | `qwen3_coder` | `qwen3` |
+| Ministral | `mistral` | `mistral` |
+| Llama 3 | `llama3_json` | *(none)* |
+| DeepSeek-R1 / V3 | `deepseek_v3` | `deepseek_r1` |
+
+### Failure mode if mismatched
+
+If vLLM is started with parser X but the model expects parser Y:
+
+- **Wrong `tool_call_parser`**: The model's tool-call tokens are not recognized. You get empty `tool_calls: []` in the response even though the model intended to call a tool. The raw text may contain unparsed JSON tool calls in the `content` field.
+- **Wrong `reasoning_parser`**: Reasoning/thinking tokens are not extracted. They end up trapped inside `reasoning_content` in an opaque format (e.g. harmony-encoded), or leak into `content` with raw `<|channel|>` tags.
+
+Always verify parser alignment before running bakeoffs. The `run_start` JSONL event now logs the configured parsers for post-hoc debugging.
+
 ## License
 
 MIT or Apache-2.0 (TBD).
