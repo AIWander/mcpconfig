@@ -117,7 +117,7 @@ pub struct ResponseMessage {
     pub content: Option<String>,
     #[serde(default)]
     pub tool_calls: Option<Vec<ToolCall>>,
-    #[serde(default)]
+    #[serde(default, alias = "reasoning")]
     pub reasoning_content: Option<String>,
 }
 
