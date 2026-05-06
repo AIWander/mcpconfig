@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use tracing::info;
 
 #[derive(Parser)]
-#[command(name = "bakeoff-driver", about = "Universal MCP-aware agent driver")]
+#[command(name = "mcpconfig", about = "Universal MCP-aware agent driver")]
 struct Cli {
     /// Path to models.toml config
     #[arg(short, long, default_value = "config/models.toml")]

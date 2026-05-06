@@ -1,4 +1,4 @@
-# bakeoff-driver
+# mcpconfig
 
 Universal MCP-aware agent driver. Bridges any OpenAI-compatible LLM endpoint to any MCP server.
 
@@ -27,7 +27,7 @@ Requires Rust 1.70+. Builds on Windows (primary) and Linux.
 
 ```bash
 # Requires a running OpenAI-compatible LLM endpoint (e.g. vLLM)
-./target/release/bakeoff-driver run tasks/example_smoke.json
+./target/release/mcpconfig run tasks/example_smoke.json
 ```
 
 Outputs land in `runs/<timestamp>_<task>/`:
@@ -37,7 +37,7 @@ Outputs land in `runs/<timestamp>_<task>/`:
 ### List tools from an MCP server (integration test)
 
 ```bash
-./target/release/bakeoff-driver list-tools hands
+./target/release/mcpconfig list-tools hands
 ```
 
 This spawns the MCP server, completes the initialize handshake, calls `tools/list`, prints the tool count and names, then shuts down. No LLM needed.
@@ -45,7 +45,7 @@ This spawns the MCP server, completes the initialize handshake, calls `tools/lis
 ### Custom config path
 
 ```bash
-./target/release/bakeoff-driver -c path/to/models.toml run tasks/my_task.json
+./target/release/mcpconfig -c path/to/models.toml run tasks/my_task.json
 ```
 
 ## Configuration
@@ -120,7 +120,7 @@ cargo test
 With hands binary at `C:\github\hands\target\release\hands.exe`:
 
 ```bash
-./target/release/bakeoff-driver list-tools hands
+./target/release/mcpconfig list-tools hands
 # Output: Server info, 118 tools listed
 ```
 
@@ -128,7 +128,7 @@ With hands binary at `C:\github\hands\target\release\hands.exe`:
 
 - Update `config/models.toml` server paths to Linux (`/root/hands/target/release/hands`)
 - Start vLLM with `--enable-auto-tool-choice --tool-call-parser harmony`
-- Run: `bakeoff-driver run tasks/example_smoke.json`
+- Run: `mcpconfig run tasks/example_smoke.json`
 - Full end-to-end test: LLM calls tools, gets results, produces final answer
 - Streaming, retries, breadcrumb integration (v2)
 

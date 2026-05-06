@@ -1,5 +1,5 @@
 [package]
-name = "bakeoff-driver"
+name = "mcpconfig"
 version = "0.1.0"
 edition = "2021"
 description = "Universal MCP-aware agent driver — bridges any OpenAI-compatible LLM to any MCP server"

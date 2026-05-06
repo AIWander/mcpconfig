@@ -220,7 +220,7 @@ impl McpClient {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
             "clientInfo": {
-                "name": "bakeoff-driver",
+                "name": "mcpconfig",
                 "version": env!("CARGO_PKG_VERSION")
             }
         });

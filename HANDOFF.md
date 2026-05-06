@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Build `bakeoff-driver` — a single Rust binary that:
+Build `mcpconfig` — a single Rust binary that:
 
 1. Spawns **one or more** MCP servers as subprocesses, speaks MCP protocol over stdio to each
 2. Discovers each server's tools via `tools/list` and aggregates them into a single tool registry
@@ -369,7 +369,7 @@ If this works end-to-end, v1 is done.
 ## 6. File layout
 
 ```
-bakeoff-driver/
+mcpconfig/
 ├── Cargo.toml
 ├── config/
 │   ├── models.toml              # model registry
@@ -472,7 +472,7 @@ For multi-model bakeoffs (v2), each model gets its own `## Model:` section. The 
 
 ## 8. Implementation order
 
-1. **Cargo project scaffold** — `cargo new --bin bakeoff-driver`, add deps: `tokio` (full), `reqwest` (json, rustls-tls), `serde` (derive), `serde_json`, `toml`, `clap` (derive), `tracing`, `tracing-subscriber`, `anyhow`, `chrono` (serde), `globset` (for tool_filter glob matching)
+1. **Cargo project scaffold** — `cargo new --bin mcpconfig`, add deps: `tokio` (full), `reqwest` (json, rustls-tls), `serde` (derive), `serde_json`, `toml`, `clap` (derive), `tracing`, `tracing-subscriber`, `anyhow`, `chrono` (serde), `globset` (for tool_filter glob matching)
 2. **Config loader** — `models.toml` parser including `[[mcp_servers]]` section, `Task` deserializer, validation
 3. **MCP stdio client** — process spawn, framing, initialize, list_tools, call_tool. Test against hands binary directly with a unit test.
 4. **OpenAI HTTP client** — chat_completion only. Test with a curl-equivalent request.
@@ -481,14 +481,14 @@ For multi-model bakeoffs (v2), each model gets its own `## Model:` section. The 
 7. **Event types and JSONL writer** — append-only, flush per line.
 8. **Agent loop** — wire registry + openai client. Hard-code a test prompt for first run.
 9. **Markdown composer** — read JSONL, emit shared_state.md.
-10. **CLI wrapper** — `bakeoff-driver run <task.json>` runs a task end to end.
+10. **CLI wrapper** — `mcpconfig run <task.json>` runs a task end to end.
 
 ## 9. Smoke test procedure
 
 After build:
 1. Start hands MCP server is implicit — driver spawns it as subprocess. Verify the path to hands binary in config.
 2. Verify vLLM is serving gpt-oss-20B: `curl http://localhost:8000/v1/models`
-3. Run: `bakeoff-driver run tasks/example_smoke.json`
+3. Run: `mcpconfig run tasks/example_smoke.json`
 4. Check `runs/<latest>/run.jsonl` exists and has at least one `tool_call` and one `final_answer` line
 5. Check `runs/<latest>/shared_state.md` is readable and contains "Example Domain"
 
@@ -498,7 +498,7 @@ If the loop completes and the answer is correct, v1 is done.
 
 - **Add more models:** edit `[[models]]` in `models.toml`. Driver code unchanged. Test each new model with the same `example_smoke.json` task.
 - **Add more MCP servers:** edit `[[mcp_servers]]` in `models.toml`, reference by name in a model or task. Driver code unchanged — the `ToolRegistry` already handles multiplexing. Example: add `workflow` and run a task with `mcp_servers = ["hands", "workflow"]` to give the LLM browser tools AND credential-vault tools in one session.
-- **Bakeoff mode:** `bakeoff-driver bakeoff <task.json> --models gpt-oss-20b,gpt-oss-120b,ministral-14b,qwen3.6-35b` — runs the same task across all models, appends each to one `shared_state.md`.
+- **Bakeoff mode:** `mcpconfig bakeoff <task.json> --models gpt-oss-20b,gpt-oss-120b,ministral-14b,qwen3.6-35b` — runs the same task across all models, appends each to one `shared_state.md`.
 - **Breadcrumb integration:** add the autonomous MCP server to the registry alongside hands. The LLM gets breadcrumb tools natively and logs its own progress. OR: wrap each iteration in driver-level `breadcrumb_step` calls via a separate autonomous MCP client outside the registry. Either pattern works; pick based on whether you want the LLM to be aware of breadcrumbs as tools.
 - **Streaming:** swap `stream: false` for `stream: true`, parse SSE deltas, accumulate tool_call chunks across deltas. Stash this for v2 — non-streaming v1 is more reliable to debug.
 - **Tool result post-processing:** truncate large DOM dumps, strip ANSI, summarize. Per-tool config block.
