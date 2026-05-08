@@ -104,7 +104,7 @@ pub async fn run_agent_loop(
             .ok_or_else(|| anyhow::anyhow!("no choices in LLM response"))?;
 
         let content = choice.message.content.clone();
-        let reasoning = choice.message.reasoning_content.clone();
+        let reasoning = choice.message.reasoning_content.clone().or_else(|| choice.message.reasoning.clone());
         let tool_calls = choice.message.tool_calls.clone().unwrap_or_default();
 
         // Optionally strip thinking tags from content
