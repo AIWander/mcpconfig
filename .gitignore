@@ -21,3 +21,7 @@ config/models.local.toml
 # Added by cargo
 
 /target
+
+# Backup files (created during in-place patches)
+*.bak.*
+*.bak

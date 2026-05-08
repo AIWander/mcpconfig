@@ -1,89 +1,40 @@
-# MCP servers the driver can spawn. Reference these by name in models or tasks.
+# mcpconfig models.toml — AMD Hackathon Droplet
+# Port map: 8001=120B, 8002=20B, 8003=mcpconfig (this server)
+
+# MCP servers the driver can spawn
+[[mcp_servers]]
+name = "workflow"
+command = "/root/workflow/target/release/workflow"
+args = []
+
 [[mcp_servers]]
 name = "hands"
-# Windows path — active for local dev
-command = "C:\\github\\hands\\target\\release\\hands.exe"
+command = "/root/hands/target/release/hands"
 args = []
-# Linux path for AMD droplet (uncomment and swap when deploying):
-# command = "/root/hands/target/release/hands"
 
-# Models the driver can route to. Each lists which MCP servers to spawn.
+# Models
 [[models]]
 name = "gpt-oss-120b"
-base_url = "http://localhost:8000/v1"
+base_url = "http://127.0.0.1:8001/v1"
 model_id = "openai/gpt-oss-120b"
 api_key_env = "VLLM_API_KEY"
 strip_thinking_tags = true
 max_tokens = 4096
 temperature = 0.7
-mcp_servers = ["hands"]
-tool_filter = ["browser_*"]
+mcp_servers = ["hands", "workflow"]
 tool_call_parser = "openai"
 reasoning_parser = "openai_gptoss"
 auto_tool_choice = true
 
 [[models]]
-name = "qwen3.6-35b-a3b"
-base_url = "http://localhost:8001/v1"
-model_id = "Qwen/Qwen3.6-35B-A3B"
+name = "gpt-oss-20b"
+base_url = "http://127.0.0.1:8002/v1"
+model_id = "openai/gpt-oss-20b"
 api_key_env = "VLLM_API_KEY"
 strip_thinking_tags = true
-system_prompt_strategy = "system_role"
 max_tokens = 4096
 temperature = 0.7
-mcp_servers = ["hands"]
-tool_filter = ["browser_*"]
-tool_call_parser = "qwen3_coder"
-reasoning_parser = "qwen3"
+mcp_servers = ["hands", "workflow"]
+tool_call_parser = "openai"
+reasoning_parser = "openai_gptoss"
 auto_tool_choice = true
-
-[[models]]
-name = "ministral-3-14b-reasoning"
-base_url = "http://localhost:8002/v1"
-model_id = "mistralai/Ministral-3-14B-Reasoning-2512"
-api_key_env = "VLLM_API_KEY"
-strip_thinking_tags = true
-system_prompt_strategy = "system_role"
-max_tokens = 4096
-temperature = 0.7
-mcp_servers = ["hands"]
-tool_filter = ["browser_*"]
-tool_call_parser = "mistral"
-reasoning_parser = "mistral"
-auto_tool_choice = true
-
-[[models]]
-name = "qwen2.5-72b-instruct-hf"
-base_url = "https://router.huggingface.co/v1"
-model_id = "Qwen/Qwen2.5-72B-Instruct"
-api_key_env = "HF_TOKEN"
-strip_thinking_tags = true
-system_prompt_strategy = "system_role"
-max_tokens = 4096
-temperature = 0.7
-mcp_servers = ["hands"]
-tool_filter = ["browser_*"]
-# parser fields intentionally omitted — HF Inference Providers handle parsing server-side
-auto_tool_choice = true
-
-[[models]]
-name = "qwen3-32b-hf"
-base_url = "https://router.huggingface.co/v1"
-model_id = "Qwen/Qwen3-32B"
-api_key_env = "HF_TOKEN"
-strip_thinking_tags = true
-system_prompt_strategy = "system_role"
-max_tokens = 4096
-temperature = 0.7
-mcp_servers = ["hands"]
-tool_filter = ["browser_*"]
-auto_tool_choice = true
-
-# Catch-all local model for testing against any OpenAI-compatible endpoint
-[[models]]
-name = "local"
-base_url = "http://localhost:11434/v1"
-model_id = "llama3"
-max_tokens = 2048
-temperature = 0.5
-mcp_servers = ["hands"]
