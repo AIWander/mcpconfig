@@ -85,6 +85,32 @@ impl EventSink for ChannelSink {
     }
 }
 
+// ── Tee sink (forwards to primary + transcript collector) ──
+
+use crate::transcripts::TranscriptCollector;
+
+/// Forwards every event to both a primary sink and a TranscriptCollector.
+pub struct TeeSink<'a> {
+    primary: &'a mut dyn EventSink,
+    pub transcript: TranscriptCollector,
+}
+
+impl<'a> TeeSink<'a> {
+    pub fn new(primary: &'a mut dyn EventSink, transcript: TranscriptCollector) -> Self {
+        Self {
+            primary,
+            transcript,
+        }
+    }
+}
+
+impl EventSink for TeeSink<'_> {
+    fn log(&mut self, kind: &str, data: Value) -> Result<()> {
+        self.transcript.feed(kind, &data);
+        self.primary.log(kind, data)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

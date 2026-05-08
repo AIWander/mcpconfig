@@ -5,10 +5,12 @@ use tracing::info;
 
 use crate::agent::{self, AgentResult};
 use crate::config::{DriverConfig, Task};
-use crate::events::EventSink;
+use crate::events::{EventSink, TeeSink};
 use crate::mcp;
 use crate::openai;
+use crate::prompt::PromptInjector;
 use crate::registry::ToolRegistry;
+use crate::transcripts::TranscriptCollector;
 
 /// Run a task against a model+MCP configuration, emitting events to the provided sink.
 /// This is the shared orchestration used by both CLI `run` and HTTP `serve`.
@@ -24,24 +26,30 @@ pub async fn run_task(
     let server_names = task.mcp_servers.as_ref().unwrap_or(&model.mcp_servers);
     let tool_filter = task.tool_filter.as_ref().unwrap_or(&model.tool_filter);
 
-    let system_prompt = task
+    // Inject system prompt context files (ARCHITECTURE.md, STATE.md, etc.)
+    let injector = PromptInjector::new(&model.system_prompt_files);
+    let raw_prompt = task
         .system_prompt
         .clone()
         .unwrap_or_else(load_default_system_prompt);
+    let system_prompt = injector.inject(&raw_prompt);
 
-    sink.log(
-        "run_start",
-        json!({
-            "task": task.name,
-            "model": model.name,
-            "base_url": model.base_url,
-            "user_prompt": task.user_prompt,
-            "mcp_servers": server_names,
-            "tool_call_parser": model.tool_call_parser,
-            "reasoning_parser": model.reasoning_parser,
-            "auto_tool_choice": model.auto_tool_choice,
-        }),
-    )?;
+    let run_id = uuid::Uuid::new_v4().to_string();
+    let transcript = TranscriptCollector::new();
+    let mut tee = TeeSink::new(sink, transcript);
+
+    let run_start_data = json!({
+        "task": task.name,
+        "model": model.name,
+        "base_url": model.base_url,
+        "user_prompt": task.user_prompt,
+        "run_id": run_id,
+        "mcp_servers": server_names,
+        "tool_call_parser": model.tool_call_parser,
+        "reasoning_parser": model.reasoning_parser,
+        "auto_tool_choice": model.auto_tool_choice,
+    });
+    tee.log("run_start", run_start_data)?;
 
     // Build tool registry — spawn each MCP server
     let mut reg = ToolRegistry::new();
@@ -88,12 +96,19 @@ pub async fn run_task(
     let openai_client = openai::OpenAIClient::new(&model.base_url, api_key);
 
     // Run agent loop
-    let result =
-        agent::run_agent_loop(task, model, &openai_client, &mut reg, sink, &system_prompt).await;
+    let result = agent::run_agent_loop(
+        task,
+        model,
+        &openai_client,
+        &mut reg,
+        &mut tee,
+        &system_prompt,
+    )
+    .await;
 
     match &result {
         Ok(r) => {
-            sink.log(
+            tee.log(
                 "run_end",
                 json!({
                     "ok": true,
@@ -104,9 +119,12 @@ pub async fn run_task(
             )?;
         }
         Err(e) => {
-            sink.log("run_end", json!({"ok": false, "error": e.to_string()}))?;
+            tee.log("run_end", json!({"ok": false, "error": e.to_string()}))?;
         }
     }
+
+    // Write transcript (errors logged but never propagate)
+    tee.transcript.write();
 
     // Shutdown MCP servers
     reg.shutdown_all().await?;

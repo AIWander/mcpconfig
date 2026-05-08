@@ -3,11 +3,13 @@ mod config;
 mod events;
 mod mcp;
 mod openai;
+mod prompt;
 mod registry;
 mod report;
 mod run;
 mod serve;
 mod tools;
+mod transcripts;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
