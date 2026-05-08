@@ -27,7 +27,10 @@ impl OpenAIClient {
         if let Some(key) = &self.api_key {
             req = req.bearer_auth(key);
         }
-        let resp = req.send().await.context("sending chat completion request")?;
+        let resp = req
+            .send()
+            .await
+            .context("sending chat completion request")?;
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();

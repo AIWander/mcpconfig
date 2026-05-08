@@ -112,8 +112,10 @@ async fn models(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
 async fn run_sse(
     State(state): State<Arc<AppState>>,
     Json(mut req): Json<RunRequest>,
-) -> Result<Sse<impl Stream<Item = Result<SseEvent, Infallible>>>, (StatusCode, Json<serde_json::Value>)>
-{
+) -> Result<
+    Sse<impl Stream<Item = Result<SseEvent, Infallible>>>,
+    (StatusCode, Json<serde_json::Value>),
+> {
     // Override the task's model field with the top-level model from the request
     req.task.model = req.model.clone();
 

@@ -54,6 +54,11 @@ pub struct ModelConfig {
     /// Whether vLLM was started with `--enable-auto-tool-choice`. Default true.
     #[serde(default = "default_auto_tool_choice")]
     pub auto_tool_choice: bool,
+
+    /// File paths to read and inject into the system prompt at request time.
+    /// Defaults to ["/opt/cpc/state/ARCHITECTURE.md", "/opt/cpc/state/STATE.md"].
+    #[serde(default)]
+    pub system_prompt_files: Vec<String>,
 }
 
 fn default_system_prompt_strategy() -> String {
@@ -101,8 +106,8 @@ pub fn load_config(path: &Path) -> Result<DriverConfig> {
 pub fn load_task(path: &Path) -> Result<Task> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("reading task: {}", path.display()))?;
-    let task: Task =
-        serde_json::from_str(&content).with_context(|| format!("parsing task: {}", path.display()))?;
+    let task: Task = serde_json::from_str(&content)
+        .with_context(|| format!("parsing task: {}", path.display()))?;
     Ok(task)
 }
 

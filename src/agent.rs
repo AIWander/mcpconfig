@@ -17,7 +17,10 @@ pub async fn run_agent_loop(
     system_prompt: &str,
 ) -> Result<AgentResult> {
     let tools_for_llm = registry.to_openai_tools();
-    let tool_names: Vec<String> = tools_for_llm.iter().map(|t| t.function.name.clone()).collect();
+    let tool_names: Vec<String> = tools_for_llm
+        .iter()
+        .map(|t| t.function.name.clone())
+        .collect();
 
     events.log(
         "tools_registered",
@@ -104,12 +107,19 @@ pub async fn run_agent_loop(
             .ok_or_else(|| anyhow::anyhow!("no choices in LLM response"))?;
 
         let content = choice.message.content.clone();
-        let reasoning = choice.message.reasoning_content.clone().or_else(|| choice.message.reasoning.clone());
+        let reasoning = choice
+            .message
+            .reasoning_content
+            .clone()
+            .or_else(|| choice.message.reasoning.clone());
         let tool_calls = choice.message.tool_calls.clone().unwrap_or_default();
 
         // Optionally strip thinking tags from content
         let display_content = if model.strip_thinking_tags {
-            content.as_deref().map(strip_thinking_tags).map(String::from)
+            content
+                .as_deref()
+                .map(strip_thinking_tags)
+                .map(String::from)
         } else {
             content.clone()
         };

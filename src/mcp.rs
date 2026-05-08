@@ -87,11 +87,7 @@ pub struct McpClient {
 
 impl McpClient {
     /// Spawn an MCP server subprocess and return a client connected via stdio.
-    pub fn spawn(
-        command: &str,
-        args: &[String],
-        env: &HashMap<String, String>,
-    ) -> Result<Self> {
+    pub fn spawn(command: &str, args: &[String], env: &HashMap<String, String>) -> Result<Self> {
         let mut cmd = tokio::process::Command::new(command);
         cmd.args(args)
             .envs(env)
@@ -173,8 +169,7 @@ impl McpClient {
 
             // If the line starts with '{', it's bare JSON (no LSP framing)
             let body: Value = if trimmed.starts_with('{') {
-                serde_json::from_str(trimmed)
-                    .context("parsing bare JSON-RPC response")?
+                serde_json::from_str(trimmed).context("parsing bare JSON-RPC response")?
             } else if trimmed.starts_with("Content-Length:") {
                 // LSP framing: read Content-Length, skip blank line, read body
                 let len: usize = trimmed
@@ -235,13 +230,11 @@ impl McpClient {
 
     /// List all tools from this MCP server.
     pub async fn list_tools(&mut self) -> Result<Vec<McpTool>> {
-        let result = self.request("tools/list", Some(serde_json::json!({}))).await?;
-        let tools: Vec<McpTool> = serde_json::from_value(
-            result
-                .get("tools")
-                .cloned()
-                .unwrap_or(Value::Array(vec![])),
-        )?;
+        let result = self
+            .request("tools/list", Some(serde_json::json!({})))
+            .await?;
+        let tools: Vec<McpTool> =
+            serde_json::from_value(result.get("tools").cloned().unwrap_or(Value::Array(vec![])))?;
         Ok(tools)
     }
 

@@ -212,9 +212,7 @@ mod tests {
                 if let Some(old_tool) = registry.raw_tools.remove(&bare_name) {
                     registry.tool_owners.remove(&bare_name);
                     registry.raw_tools.insert(old_prefixed.clone(), old_tool);
-                    registry
-                        .tool_owners
-                        .insert(old_prefixed, existing_server);
+                    registry.tool_owners.insert(old_prefixed, existing_server);
                 }
                 registry.raw_tools.insert(new_prefixed.clone(), tool);
                 registry

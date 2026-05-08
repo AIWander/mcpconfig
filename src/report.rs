@@ -37,9 +37,7 @@ pub fn compose_report(run_dir: &Path) -> Result<String> {
 
     // Find tools_registered
     let tools_event = events.iter().find(|e| e["kind"] == "tools_registered");
-    let tool_count = tools_event
-        .and_then(|e| e["count"].as_u64())
-        .unwrap_or(0);
+    let tool_count = tools_event.and_then(|e| e["count"].as_u64()).unwrap_or(0);
 
     // Find final_answer
     let final_answer = events.iter().find(|e| e["kind"] == "final_answer");
@@ -62,19 +60,14 @@ pub fn compose_report(run_dir: &Path) -> Result<String> {
         .unwrap_or(0);
 
     // Header
-    md.push_str(&format!(
-        "# Bakeoff: {} - {}\n\n",
-        task_name, timestamp
-    ));
+    md.push_str(&format!("# Bakeoff: {} - {}\n\n", task_name, timestamp));
     if !user_prompt.is_empty() {
         md.push_str(&format!("**Task:** {}\n\n", user_prompt));
     }
     md.push_str("---\n\n");
 
     // Model section
-    let base_url = run_start
-        .and_then(|e| e["base_url"].as_str())
-        .unwrap_or("");
+    let base_url = run_start.and_then(|e| e["base_url"].as_str()).unwrap_or("");
     md.push_str(&format!("## Model: {}\n\n", model_name));
     if !base_url.is_empty() {
         md.push_str(&format!(
@@ -101,9 +94,9 @@ pub fn compose_report(run_dir: &Path) -> Result<String> {
         md.push_str(&format!("#### Iteration {}\n\n", iter));
 
         // Reasoning from llm_response
-        let llm_resp = events.iter().find(|e| {
-            e["kind"] == "llm_response" && e["iteration"].as_u64() == Some(iter)
-        });
+        let llm_resp = events
+            .iter()
+            .find(|e| e["kind"] == "llm_response" && e["iteration"].as_u64() == Some(iter));
         if let Some(resp) = llm_resp {
             if let Some(reasoning) = resp["reasoning"].as_str() {
                 if !reasoning.is_empty() {
@@ -124,9 +117,10 @@ pub fn compose_report(run_dir: &Path) -> Result<String> {
             .collect();
 
         if calls.is_empty() {
-            if let Some(fa) = events.iter().find(|e| {
-                e["kind"] == "final_answer" && e["iteration"].as_u64() == Some(iter)
-            }) {
+            if let Some(fa) = events
+                .iter()
+                .find(|e| e["kind"] == "final_answer" && e["iteration"].as_u64() == Some(iter))
+            {
                 md.push_str(&format!(
                     "*Final answer.* {}\n\n",
                     fa["content"].as_str().unwrap_or("")
@@ -140,9 +134,9 @@ pub fn compose_report(run_dir: &Path) -> Result<String> {
                 let call_id = call["id"].as_str().unwrap_or("");
 
                 // Find matching result
-                let result = events.iter().find(|e| {
-                    e["kind"] == "tool_result" && e["id"].as_str() == Some(call_id)
-                });
+                let result = events
+                    .iter()
+                    .find(|e| e["kind"] == "tool_result" && e["id"].as_str() == Some(call_id));
                 let result_text = result
                     .and_then(|r| r["content"].as_str())
                     .unwrap_or("(no result)");
