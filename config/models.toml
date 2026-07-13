@@ -4,12 +4,12 @@
 # MCP servers the driver can spawn
 [[mcp_servers]]
 name = "workflow"
-command = "/root/workflow/target/release/workflow"
+command = "/path/to/workflow"
 args = []
 
 [[mcp_servers]]
 name = "hands"
-command = "/root/hands/target/release/hands"
+command = "/path/to/hands"
 args = []
 
 # Models

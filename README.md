@@ -1,5 +1,8 @@
 # mcpconfig
 
+> Archived May 2026 hackathon artifact. This repository is not maintained and its example
+> endpoints and paths are illustrative only.
+
 Universal MCP-aware agent driver. Bridges any OpenAI-compatible LLM endpoint to any MCP server.
 
 ## What this does
@@ -58,7 +61,7 @@ Defines MCP servers and model endpoints:
 [[mcp_servers]]
 name = "hands"
 command = "C:\\github\\hands\\target\\release\\hands.exe"
-# Linux: command = "/root/hands/target/release/hands"
+# Linux: command = "/path/to/hands"
 
 [[models]]
 name = "gpt-oss-20b"
@@ -117,7 +120,7 @@ cargo test
 
 ## Integration test (hands.exe)
 
-With hands binary at `C:\github\hands\target\release\hands.exe`:
+With a local hands binary at `<repo>\target\release\hands.exe`:
 
 ```bash
 ./target/release/mcpconfig list-tools hands
@@ -126,7 +129,7 @@ With hands binary at `C:\github\hands\target\release\hands.exe`:
 
 ## What remains for the droplet
 
-- Update `config/models.toml` server paths to Linux (`/root/hands/target/release/hands`)
+- Update `config/models.toml` to the actual server paths on the target machine.
 - Start vLLM with `--enable-auto-tool-choice --tool-call-parser harmony`
 - Run: `mcpconfig run tasks/example_smoke.json`
 - Full end-to-end test: LLM calls tools, gets results, produces final answer
@@ -226,4 +229,5 @@ Errors during the run appear as `event: error` on the stream (not HTTP 500s). CO
 
 ## License
 
-MIT or Apache-2.0 (TBD).
+No license grant is made for this archived historical artifact. Its dependencies retain
+their own licenses.
